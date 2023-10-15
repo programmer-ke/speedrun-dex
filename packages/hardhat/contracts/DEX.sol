@@ -88,11 +88,11 @@ contract DEX {
         uint256 xReserves,
         uint256 yReserves
     ) public pure returns (uint256 yOutput) {
-      uint256 xInputWithFee = xInput * 977;
-      uint256 numerator = xInputWithFee * yReserves;
-      uint256 denominator = (xReserves * 1000) + xInputWithFee;
-      return (numerator / denominator);
-    }
+        uint256 xInputWithFee = xInput * 997;
+        uint256 numerator = xInputWithFee * yReserves;
+        uint256 denominator = (xReserves * 1000) + xInputWithFee;
+        return (numerator / denominator);
+    }    
 
     /**
      * @notice returns liquidity for a user.
