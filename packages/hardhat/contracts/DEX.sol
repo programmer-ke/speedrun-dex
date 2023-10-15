@@ -80,15 +80,19 @@ contract DEX {
 
     /**
      * @notice returns yOutput, or yDelta for xInput (or xDelta)
-     * @dev Follow along with the [original tutorial](https://medium.com/@austin_48503/%EF%B8%8F-minimum-viable-exchange-d84f30bd0c90)
-     * Price section for an understanding of the DEX's pricing model and for a price function to add to your contract.
-     * You may need to update the Solidity syntax (e.g. use + instead of .add, * instead of .mul, etc). Deploy when you are done.
+     * You may need to update the Solidity syntax
+     * (e.g. use + instead of .add, * instead of .mul, etc). Deploy when you are done.
      */
     function price(
         uint256 xInput,
         uint256 xReserves,
         uint256 yReserves
-    ) public pure returns (uint256 yOutput) {}
+    ) public pure returns (uint256 yOutput) {
+      uint256 xInputWithFee = xInput * 977;
+      uint256 numerator = xInputWithFee * yReserves;
+      uint256 denominator = (xReserves * 1000) + xInputWithFee;
+      return (numerator / denominator);
+    }
 
     /**
      * @notice returns liquidity for a user.
