@@ -159,8 +159,8 @@ contract DEX {
 
       // $BAL tokens deposited according to current ratio
       // add one because worst case the ratio results in zero
-      uint256 balDeposit = (msg.value * balReserves/ethReserves) + 1;
-      //uint256 balDeposit = (msg.value * balReserves/ethReserves);
+      //uint256 balDeposit = (msg.value * balReserves/ethReserves) + 1;
+      uint256 balDeposit = (msg.value * balReserves/ethReserves);
 
       // Liquidity minted according to ratio of total liquidity to eth
       uint256 mintedLPTokens = msg.value * totalLiquidity / ethReserves;
