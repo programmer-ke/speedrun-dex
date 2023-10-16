@@ -1,0 +1,10 @@
+* todo
+  - [X] checkpoint 2
+  - [X] checkpoint 3: price
+  - [ ] checkpoint 4: trading
+
+* issue
+  - is the ethToToken really correct?
+    - yes. subtraction is necessary because msg.value is already
+      included in this.balance
+

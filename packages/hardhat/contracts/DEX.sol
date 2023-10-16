@@ -92,7 +92,39 @@ contract DEX {
         uint256 numerator = xInputWithFee * yReserves;
         uint256 denominator = (xReserves * 1000) + xInputWithFee;
         return (numerator / denominator);
-    }    
+    }
+
+    /**
+     * @notice sends Ether to DEX in exchange for $BAL
+     */
+    function ethToToken() public payable returns (uint256 tokenOutput) {
+      require(msg.value > 0, "DEX: ethToToken - cannot swap 0 ETH");
+      uint256 receivedEth = msg.value;
+      uint256 ethReserve = address(this).balance - msg.value; // because sent eth is already included in balance
+      uint256 balReserve = token.balanceOf(address(this));
+
+      uint256 balToSend = price(receivedEth, ethReserve, balReserve);
+      token.transfer(msg.sender, balToSend);
+      emit EthToTokenSwap(msg.sender, balToSend, msg.value);
+      return balToSend;
+    }
+
+    /**
+     * @notice sends $BAL tokens to DEX in exchange for Ether
+     */
+    function tokenToEth(uint256 tokenInput) public returns (uint256 ethOutput) {
+      require(tokenInput > 0, "DEX: tokenInput - cannot swap 0 tokens");
+      uint256 receivedBal = tokenInput;
+      uint256 balReserve = token.balanceOf(address(this));
+      uint256 ethReserve = address(this).balance;
+
+      uint ethToSend = price(receivedBal, balReserve, ethReserve);
+      token.transferFrom(msg.sender, address(this), receivedBal);
+      (bool sent,) = msg.sender.call{value: ethToSend}("");
+      require(sent, "DEX: tokenToEth - unable to send eth");
+      emit TokenToEthSwap(msg.sender, tokenInput, ethToSend);
+      return ethToSend;
+    }
 
     /**
      * @notice returns liquidity for a user.
@@ -109,28 +141,73 @@ contract DEX {
     }
 
     /**
-     * @notice sends Ether to DEX in exchange for $BAL
-     */
-    function ethToToken() public payable returns (uint256 tokenOutput) {}
-
-    /**
-     * @notice sends $BAL tokens to DEX in exchange for Ether
-     */
-    function tokenToEth(uint256 tokenInput) public returns (uint256 ethOutput) {}
-
-    /**
      * @notice allows deposits of $BAL and $ETH to liquidity pool
-     * NOTE: parameter is the msg.value sent with this function call. That amount is used to determine the amount of $BAL needed as well
+     * NOTE: parameter is the msg.value sent with this function call.
+     * That amount is used to determine the amount of $BAL needed as well
      * and taken from the depositor.
-     * NOTE: user has to make sure to give DEX approval to spend their tokens on their behalf by calling approve function prior to this function call.
-     * NOTE: Equal parts of both assets will be removed from the user's wallet with respect to the price outlined by the AMM.
+     * NOTE: user has to make sure to give DEX approval to spend their
+     * tokens on their behalf by calling approve function prior to
+     * this function call.
+     * NOTE: Equal parts of both assets will be removed from the
+     * user's wallet with respect to the price outlined by the AMM.
      */
-    function deposit() public payable returns (uint256 tokensDeposited) {}
+    function deposit() public payable returns (uint256 tokensDeposited) {
+      require(msg.value > 0, "DEX: deposit - no ETH sent");
 
+      uint256 ethReserves = address(this).balance - msg.value;
+      uint256 balReserves = token.balanceOf(address(this));
+
+      // $BAL tokens deposited according to current ratio
+      // add one because worst case the ratio results in zero
+      uint256 balDeposit = (msg.value * balReserves/ethReserves) + 1; 
+
+      // Liquidity minted according to ratio of total liquidity to eth
+      uint256 mintedLPTokens = msg.value * (totalLiquidity / ethReserves);
+      totalLiquidity += mintedLPTokens;
+      liquidity[msg.sender] += mintedLPTokens;
+
+      bool transferred = token.transferFrom(msg.sender, address(this), balDeposit);
+      require(transferred, "DEX: deposit - unable to deposit tokens");
+
+      emit LiquidityProvided(msg.sender, balDeposit, msg.value, mintedLPTokens);
+      return balDeposit;
+    }
+
+    
     /**
      * @notice allows withdrawal of $BAL and $ETH from liquidity pool
-     * NOTE: with this current code, the msg caller could end up getting very little back if the liquidity is super low in the pool.
+     * NOTE: with this current code, the msg caller could end up
+     * getting very little back if the liquidity is super low in the pool.
      * I guess they could see that with the UI.
      */
-    function withdraw(uint256 amount) public returns (uint256 eth_amount, uint256 token_amount) {}
+    function withdraw(uint256 amount) public returns (uint256 eth_amount, uint256 token_amount) {
+      require(
+	      liquidity[msg.sender] >= amount,
+	      "DEX: withdraw - liquidity less than requested amount"
+	      );
+
+      uint256 ethReserves = address(this).balance;
+      uint256 balReserves = token.balanceOf(address(this));
+      
+      uint256 ethWithdrawal = amount * (ethReserves / totalLiquidity);
+      uint256 balWithdrawal = amount * (balReserves / totalLiquidity);
+
+      liquidity[msg.sender] -= amount;
+      totalLiquidity -= amount;
+
+      (bool sent,) = msg.sender.call{value: ethWithdrawal}("");
+      require(sent, "DEX: withdraw - unable to send ETH");
+
+      bool transferred = token.transfer(msg.sender, balWithdrawal);
+      require(transferred, "DEX: withdraw - unable to transfer tokens");
+
+      emit LiquidityRemoved(
+        msg.sender,
+        balWithdrawal,
+        ethWithdrawal,
+        amount
+      );
+
+      return (ethWithdrawal, balWithdrawal);
+    }
 }
