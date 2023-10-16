@@ -30,10 +30,18 @@ const Events: NextPage = () => {
     fromBlock: 0n,
   });
 
+  const { data: approvalEvents, isLoading: isApprovalEventsLoading } = useScaffoldEventHistory({
+    contractName: "Balloons",
+    eventName: "Approval",
+    fromBlock: 0n,
+  });
+
   return (
     <>
       <MetaHeader />
       <div className="flex items-center flex-col flex-grow pt-10">
+
+
         {isEthToTokenEventsLoading ? (
           <div className="flex justify-center items-center mt-10">
             <Spinner width="75" height="75" />
@@ -213,6 +221,55 @@ const Events: NextPage = () => {
             </div>
           </div>
         )}
+
+        {isApprovalEventsLoading ? (
+          <div className="flex justify-center items-center mt-10">
+            <Spinner width="75" height="75" />
+          </div>
+        ) : (
+          <div>
+            <div className="text-center mb-4">
+              <span className="block text-2xl font-bold">Approval Events</span>
+            </div>
+            <div className="overflow-x-auto shadow-lg">
+              <table className="table table-zebra w-full">
+                <thead>
+                  <tr>
+                    <th className="bg-primary">owner</th>
+                    <th className="bg-primary">spender</th>
+                    <th className="bg-primary">value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {!approvalEvents || approvalEvents.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="text-center">
+                        No events found
+                      </td>
+                    </tr>
+                  ) : (
+                    approvalEvents?.map((event, index) => {
+                      return (
+                        <tr key={index}>
+                          <td className="text-center">
+                            <Address address={event.args.owner} />
+                          </td>
+                          <td>
+			      <Address address={event.args.spender} />
+			  </td>
+                          <td>
+			      {parseFloat(formatEther(event.args.value)).toFixed(4)}
+			  </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
       </div>
     </>
   );

@@ -49,7 +49,7 @@ contract DEX {
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor(address token_addr) public {
+    constructor(address token_addr) {
         token = IERC20(token_addr); //specifies the token address that will hook into the interface and be used through the variable 'token'
     }
 
@@ -159,10 +159,11 @@ contract DEX {
 
       // $BAL tokens deposited according to current ratio
       // add one because worst case the ratio results in zero
-      uint256 balDeposit = (msg.value * balReserves/ethReserves) + 1; 
+      uint256 balDeposit = (msg.value * balReserves/ethReserves) + 1;
+      //uint256 balDeposit = (msg.value * balReserves/ethReserves);
 
       // Liquidity minted according to ratio of total liquidity to eth
-      uint256 mintedLPTokens = msg.value * (totalLiquidity / ethReserves);
+      uint256 mintedLPTokens = msg.value * totalLiquidity / ethReserves;
       totalLiquidity += mintedLPTokens;
       liquidity[msg.sender] += mintedLPTokens;
 
@@ -189,8 +190,8 @@ contract DEX {
       uint256 ethReserves = address(this).balance;
       uint256 balReserves = token.balanceOf(address(this));
       
-      uint256 ethWithdrawal = amount * (ethReserves / totalLiquidity);
-      uint256 balWithdrawal = amount * (balReserves / totalLiquidity);
+      uint256 ethWithdrawal = amount * ethReserves / totalLiquidity;
+      uint256 balWithdrawal = amount * balReserves / totalLiquidity;
 
       liquidity[msg.sender] -= amount;
       totalLiquidity -= amount;
